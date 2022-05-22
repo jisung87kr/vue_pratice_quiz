@@ -1,4 +1,8 @@
 import { createApp } from 'vue'
 import App from './App.vue'
+import route from './route'
+import './main.css'
 
-createApp(App).mount('#app')
+var app = createApp(App)
+app.use(route)
+app.mount('#app')
