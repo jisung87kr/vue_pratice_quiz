@@ -1,13 +1,29 @@
 <template>
     <h2 class="mb-3 text-xl text-bold">스피드 퀴즈</h2>
     <div class="my-5 flex gap-3">
+        <AppBtn @click="reset">리셋</AppBtn>
         <AppBtn @click="startQuiz" :active="start">시작</AppBtn>
         <AppBtn @click="stopQuiz" :active="!start">중지</AppBtn>
         <AppBtn @click="prev">이전</AppBtn>
         <AppBtn @click="next">다음</AppBtn>
+    </div>
+    <div class="my-5 flex gap-3">
         <AppBtn @click="correct(true)">정답</AppBtn>
         <AppBtn @click="correct(false)">패스</AppBtn>
     </div>
+    <!-- <div class="mb-3">
+        <AppBtn @click="requestPermission">시작</AppBtn>
+        <AppBtn @click="stopEvent">중지</AppBtn>
+        <ul class="mt-3 text-sm">
+            <li>isPossible : {{ orientalEvent.isPossible }}</li>
+            <li>isRunning : {{ orientalEvent.isRunning }}</li>
+            <li>result : {{ orientalEvent.result }}</li>
+            <li>absolute : {{ orientalEvent.absolute }}</li>
+            <li>alpha : {{ orientalEvent.alpha }}</li>
+            <li>beta : {{ orientalEvent.beta }}</li>
+            <li>gamma : {{ orientalEvent.gamma }}</li>
+        </ul>
+    </div> -->
     <div>
         <div class="mb-5 border-t border-b border-slate-600 py-3">
             <div>남은 시간 : {{ remainTime }}</div>
@@ -39,7 +55,7 @@ export default {
     data(){
         return{
             start: false,
-            limitTime: 3,
+            limitTime: 10,
             remainTime: 0,
             currentItem: {},
             list: [
@@ -48,6 +64,15 @@ export default {
                 {id: 3, title: '퀴즈3', correct: null},
                 {id: 4, title: '퀴즈4', correct: null},
             ],
+            orientalEvent: {
+                isPossible: true,
+                isRunning: false,
+                result: '',
+                absolute: '',
+                alpha: '',
+                beta: '',
+                gamma: ''
+            }
         }
     },
     computed: {
@@ -66,8 +91,27 @@ export default {
     },
     mounted: function(){
         this.currentItem = this.getFirstItem;
+        if (typeof DeviceOrientationEvent !== 'function') {
+            this.orientalEvent.isPossible = false;
+            this.orientalEvent.result = 'DeviceOrientationEvent not detected';
+        }
+
+        if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
+            this.orientalEvent.isPossible = false;
+            this.orientalEvent.result = 'DeviceOrientationEvent.requestPermission not detected';
+        }
     },
     methods: {
+        reset(){
+            this.list.map(a => {
+                a.correct = null;
+                return a;
+            });
+
+            this.start = false;
+            this.currentItem = this.getFirstItem;
+            this.remainTime = this.limitTime;
+        },
         startQuiz(){
             this.start = true;
             if(this.remainTime == 0){
@@ -75,6 +119,7 @@ export default {
             }
             
             this.runningQuiz();
+            this.requestPermission();
         },
         stopQuiz(){
             this.start = false;
@@ -115,6 +160,8 @@ export default {
         correct(correct){
             let index = this.getCurrentIndex;
             this.currentItem.correct = correct;
+            this.remainTime = this.limitTime;
+            console.log(this.limitTime);
             if(index == this.getListSize -1){
                 // return false;
             }
@@ -125,6 +172,45 @@ export default {
                 return item.title;
             }
             return '비공개';
+        },
+        stopEvent(){
+            removeEventListener('deviceorientation', this.runningEvent);
+            this.orientalEvent.isRunning = false;
+        },
+        requestPermission(){
+            if(this.orientalEvent.isPossible){
+                DeviceOrientationEvent.requestPermission().then( result => {
+                    return result;
+                }).then( permissionState => {
+                    this.orientalEvent.result = permissionState;
+                    window.addEventListener('deviceorientation', this.runningEvent);
+                });
+            }
+        },
+        runningEvent(event){
+            this.orientalEvent.isRunning = true;
+            this.orientalEvent.absolute = event.absolute;
+            this.orientalEvent.alpha    = event.alpha;
+            this.orientalEvent.beta     = event.beta;
+            this.orientalEvent.gamma    = event.gamma;
+
+            if(this.orientalEvent.beta > 150){
+                // alert('정답');
+                this.stopEvent();
+                setTimeout(() => {
+                    this.correct(true);
+                    this.requestPermission();
+                }, 1000);
+            }
+
+            if(this.orientalEvent.beta < 30){
+                // alert('패스');
+                this.stopEvent();
+                setTimeout(() => {
+                    this.correct(false);
+                    this.requestPermission();
+                }, 1000);
+            }
         }
     }
 }

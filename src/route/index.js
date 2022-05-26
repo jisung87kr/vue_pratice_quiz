@@ -4,9 +4,9 @@ import About from '../views/AppAbout.vue';
 import Quiz from '../views/AppQuiz.vue';
 
 const routes = [
-    { path: '/', component: Home },
-    { path: '/about', component: About },
-    { path: '/quiz', component: Quiz },
+    { path: '/', name: 'home', component: Home },
+    { path: '/about', name: 'about', component: About },
+    { path: '/quiz', name: 'quiz', component: Quiz },
 ];
 
 const router = createRouter({
